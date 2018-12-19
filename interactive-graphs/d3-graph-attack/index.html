@@ -1,0 +1,169 @@
+<!-- 
+	Author - Mohd Sanad Zaki Rizvi
+	Github - https://github.com/mohdsanadzakirizvi 
+-->
+<!DOCTYPE html>
+<html>
+	<head>
+		<script type="text/javascript" src="https://d3js.org/d3.v3.js""></script>
+		  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-tip/0.6.3/d3-tip.min.js"></script>
+
+		<style>
+			body{ font: Arial 12px; text-align: center;}
+
+			.link {
+			  stroke: #ccc;
+			}
+
+			.node text {
+			  pointer-events: none;
+			  font: sans-serif;
+			}
+			  .d3-tip {
+				  font-family: "Helvetica Neue";
+				  line-height: 1;
+				  font-weight: bold;
+				  padding: 12px;
+				  background: rgba(0, 0, 0, 0.8);
+				  color: #fff;
+				  border-radius: 2px;
+				  pointer-events: none;
+				}
+
+				/* Creates a small triangle extender for the tooltip */
+				.d3-tip:after {
+				  box-sizing: border-box;
+				  display: inline;
+				  font-size: 10px;
+				  width: 100%;
+				  line-height: 1;
+				  color: rgba(0, 0, 0, 0.8);
+				  position: absolute;
+				  pointer-events: none;
+				}
+
+				/* Northward tooltips */
+				.d3-tip.n:after {
+				  content: "\25BC";
+				  margin: -1px 0 0 0;
+				  top: 100%;
+				  left: 0;
+				  text-align: center;
+				}
+
+				/* Eastward tooltips */
+				.d3-tip.e:after {
+				  content: "\25C0";
+				  margin: -4px 0 0 0;
+				  top: 50%;
+				  left: -8px;
+				}
+
+				/* Southward tooltips */
+				.d3-tip.s:after {
+				  content: "\25B2";
+				  margin: 0 0 1px 0;
+				  top: -8px;
+				  left: 0;
+				  text-align: center;
+				}
+
+				/* Westward tooltips */
+				.d3-tip.w:after {
+				  content: "\25B6";
+				  margin: -4px 0 0 -1px;
+				  top: 50%;
+				  left: 100%;
+				}
+
+		</style>
+		<link rel="stylesheet" type="text/css" href="main.css">
+	</head>
+	<body>
+	<script type="text/javascript">
+
+	//Set margins and sizes
+	var margin = {
+		top: 20,
+		bottom: 50,
+		right: 30,
+		left: 50
+	};
+	var width = 2500 - margin.left - margin.right; //<!--change marlins proper-->
+	var height = 1800 - margin.top - margin.bottom;
+	//Load Color Scale
+	var c10 = d3.scale.category10();
+	//Create an SVG element and append it to the DOM
+	var svgElement = d3.select("body")
+						.append("svg").attr({"width": width+margin.left+margin.right, "height": height+margin.top+margin.bottom})
+						.append("g")
+						.attr("transform","translate("+margin.left+","+margin.top+")");	
+	var format = d3.format(".2s");
+	var yourImagePath = "333t.jpg";
+	var tip = d3.tip()
+  		.attr('class', 'd3-tip')
+  		.direction('s')
+  		.html(function(d) {
+    		return "<p><img src=images/"+d.player.replace(/\s/g, "")+".png style=width:200;height:200px;></p>";
+  		});
+	//Load External Data
+	d3.json("players.json", function(dataset){
+
+		//Extract data from dataset
+		var nodes = dataset.nodes,
+			links = dataset.links;
+		//Create Force Layout
+		var force = d3.layout.force()
+						.size([width, height])
+						.nodes(nodes)
+						.links(links)
+						.gravity(.05)
+						.charge(-200)
+						.linkDistance(200);
+		//Add links to SVG
+		svgElement.call(tip)
+		var link = svgElement.selectAll(".link")
+					.data(links)
+					.enter()
+					.append("line")
+					.attr("stroke-width", function(d){ return d.weight/10; })
+					.attr("class", "link");
+		//Add nodes to SVG
+		var node = svgElement.selectAll(".node")
+					.data(nodes)
+					.enter()
+					.append("g")
+					.attr("class", "node")
+					.call(force.drag)
+					.on('mouseover', tip.show)
+        			.on('mouseout', tip.hide);
+		//Add labels to each node
+		var label = node.append("text")
+						.attr("dx", 12)
+						.attr("dy", "0.35em")
+						.attr("font-size", function(d){ return d.influence*1.5>9? d.influence*1.5: 9; })
+						.text(function(d){ return d.player; });
+		//Add circles to each node
+		var circle = node.append("circle")
+						.attr("r", function(d){ return d.influence/2>5 ? d.influence/2 : 5; })
+						.attr("fill", function(d){ return c10(d.zone*10); });
+		//This function will be executed for every tick of force layout 
+		force.on("tick", function(){
+			//Set X and Y of node
+			node.attr("r", function(d){ return d.influence; })
+				.attr("cx", function(d){ return d.x; })
+				.attr("cy", function(d){ return d.y; });
+			//Set X, Y of link
+			link.attr("x1", function(d){ return d.source.x; })
+			link.attr("y1", function(d){ return d.source.y; })
+			link.attr("x2", function(d){ return d.target.x; })
+			link.attr("y2", function(d){ return d.target.y; });
+			//Shift node a little
+		    node.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; });
+		});
+		//Start the force layout calculation
+		force.start();
+	});
+	</script>
+	</body>
+</html>
